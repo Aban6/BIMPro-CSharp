@@ -1,0 +1,40 @@
+using Autodesk.Revit.DB;
+using Autodesk.Revit.UI;
+using System;
+
+namespace MyRevitCommands
+{
+    internal class CreateThermalAsset
+    {
+        public void ThermalAsset(Document doc, Material material)
+        {
+            using (Transaction trans = new Transaction(doc, "Create thermal asset"))
+            {
+                trans.Start();
+
+                var thAsset = new ThermalAsset(material.Name + "1", ThermalMaterialType.Solid);
+                var pse2 = PropertySetElement.Create(doc, thAsset);
+                thAsset.Name = material.Name;
+                thAsset.Behavior = StructuralBehavior.Isotropic;
+                thAsset.ThermalConductivity = 0.00;
+                thAsset.SpecificHeat = 0.0;
+                thAsset.Porosity = 0.0;
+                thAsset.Density = 0.0;
+                thAsset.Emissivity = 0.0;
+                thAsset.Reflectivity = 0.0;
+                thAsset.Permeability = 0.0;
+                thAsset.ElectricalResistivity = 0.0;
+                //thAsset.Compressibility = 0.0;
+                material.SetMaterialAspectByPropertySet(MaterialAspect.Thermal, pse2.Id);
+
+                trans.Commit();
+                //TaskDialog.Show(material.Name, "Thermal Asset Added!");
+            }
+        }
+
+        internal void ThermalAsset(object m_doc, Material material)
+        {
+            throw new NotImplementedException();
+        }
+    }
+}
