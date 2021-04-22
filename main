@@ -1,0 +1,83 @@
+using Autodesk.Revit.DB;
+using Autodesk.Revit.UI;
+using Autodesk.Revit.Attributes;
+using System;
+using System.IO;
+using Autodesk.Revit.ApplicationServices;
+
+
+//Materials MUST have thermal asset activated in their properties to work with this code.
+namespace MyRevitCommands
+{
+    [Transaction(TransactionMode.Manual)]
+    [Regeneration(RegenerationOption.Manual)]
+    [Journaling(JournalingMode.NoCommandData)]
+    public class ProModel : IExternalCommand
+    {
+
+        public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
+        {
+            //Revit application documents
+            UIApplication uiapp = commandData.Application;
+            UIDocument uidoc = uiapp.ActiveUIDocument;
+            Application app = commandData.Application.Application;
+            m_doc = commandData.Application.ActiveUIDocument.Document;
+
+            //Check Revit units
+           var units = commandData.Application.ActiveUIDocument.Document.DisplayUnitSystem;
+
+            if (units.ToString() is "METRIC")
+            {
+                TaskDialog.Show("Project Unit", "The project unit is " + units.ToString() + ". You can continue to select the database!");
+            }
+            else
+            {
+                TaskDialog.Show("Project Unit", "The project unit is " + units.ToString() + ". You must change project unit to METRIC to continue!");
+                return Result.Failed;
+            }
+
+            //add a shared parameter 
+            CreateSharedParameter csp = new CreateSharedParameter();
+            csp.CreateSampleSharedParameters(m_doc, app);
+
+            //set parameter values using an Excel database
+            SetSharedParametersAndSampling ssp = new SetSharedParametersAndSampling();
+            ssp.SetElementMaterialThermalProperties(m_doc, app);
+
+            //get material thickness
+            GetMaterialThickness gmt = new GetMaterialThickness();
+            gmt.GetElementMaterialsThickness(m_doc);
+
+            //get R_value
+            ElementThermalResistance etr = new ElementThermalResistance();
+            etr.GetThermalResistance(m_doc, app);
+
+            
+            String filename = "CalculateMaterialQuantities.txt";
+            m_writer = new StreamWriter(filename);
+
+            ExecuteCalculationsWith2<WallMaterialQuantityCalculator2>();
+            ExecuteCalculationsWith2<RoofMaterialQuantityCalculator2>();
+            ExecuteCalculationsWith2<FloorMaterialQuantityCalculator2>();
+
+            m_writer.Close();
+
+
+            return Result.Succeeded;
+        }
+        private void ExecuteCalculationsWith2<T>() where T : MaterialQuantityCalculator2, new()
+        {
+            
+            T calculator2 = new T();
+            calculator2.SetDocument2(m_doc);
+            calculator2.CalculateMaterialQuantities2();
+            calculator2.ReportResults(m_writer);
+        }
+        private Document m_doc;
+        private TextWriter m_writer;
+    }
+}
+    
+        
+
+
