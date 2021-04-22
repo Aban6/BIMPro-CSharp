@@ -1,0 +1,246 @@
+using Autodesk.Revit.DB;
+using Autodesk.Revit.UI;
+using System.Collections.Generic;
+using System.Linq;
+using System;
+using System.Text;
+
+namespace MyRevitCommands
+{
+
+    class GetMaterialThickness 
+    {
+        public double MaterialThickness { get; private set; }
+
+        public double GetElementMaterialsThickness(Document doc)
+        {
+            //Filter all the wall types in the current Revit project
+            FilteredElementCollector wallTypes= new FilteredElementCollector(doc).OfClass(typeof(WallType));
+
+            string s_wall = string.Empty;
+
+            try
+            {
+                //print all the wall type names
+                foreach (WallType wallType in wallTypes)
+                {
+                    {
+
+
+                        WallType type = wallType as WallType;
+
+
+                        CompoundStructure cs = type.GetCompoundStructure();
+                        if (cs != null)
+                        {
+                            foreach (CompoundStructureLayer layer in cs.GetLayers())
+                            {
+                                double MaterialThickness = layer.Width;
+
+
+                            }
+                        }
+                        
+                        s_wall += "\r\n" + wallType.Kind.ToString() + " : " + wallType.Name;
+                    }
+                }
+
+                //Filter all the floor types in the current Revit project
+                FilteredElementCollector floorTypes
+                = new FilteredElementCollector(doc)
+                .OfClass(typeof(FloorType));
+
+                //get the number of wall types
+                int n_floor = floorTypes.Count();
+                string s_floor = string.Empty;
+
+                //print all the wall type names
+                foreach (FloorType floorType in floorTypes)
+                {
+                    // Family name is not in the property for 
+                    // floor, so use BuiltInParameter here. (mention the copyright from the following website:)(https://github.com/ADN-DevTech/RevitTrainingMaterial/blob/master/Labs/1_Revit_API_Intro/SourceCS/3_ElementFiltering.cs)
+                    Parameter param = floorType.get_Parameter(
+                    BuiltInParameter.SYMBOL_FAMILY_NAME_PARAM);
+                    if (param != null)
+                    {
+                        s_floor += param.AsString();
+                    }
+                    s_floor += " : " + floorType.Name + "\r\n";
+                }
+
+                //Filter all the window types in the current Revit project
+                // For component family, it is slightly different. 
+                // There is no designate property in the document class. 
+                // You always need to use a filtering. e.g., for doors and windows. 
+                // Remember for component family, you will need to check element type and category. 
+                /// <summary>
+                /// Helper function to display info from a list of elements passed onto. 
+                /// </summary>  
+
+                var windowTypeCollector = new FilteredElementCollector(doc);
+                windowTypeCollector.OfClass(typeof(FamilySymbol));
+                windowTypeCollector.OfCategory(BuiltInCategory.OST_Windows);
+                IList<Element> windowTypes = windowTypeCollector.ToElements();
+
+                ShowElementList(windowTypes, " Window Types: ");
+
+                //get material layers for each basic wall type: (https://forums.autodesk.com/t5/revit-api-forum/getting-the-multiple-element-ids-for-materials-in-a-wall/td-p/6708336)
+                StringBuilder builder = new StringBuilder();
+
+                foreach (WallType wallType in wallTypes)
+                {
+                    if (wallType.Kind == WallKind.Basic)
+                    {
+                        builder.AppendLine($"\r\n wallType: {wallType.Name} \r\n");
+
+                        foreach (var material in Get(wallType))
+                        {
+                            if (material == null)
+                            {
+                                throw new ArgumentNullException(nameof(material));
+                            }
+
+                            builder.AppendLine($"Material: {material.Name}");
+
+                        }
+                        WallType type = wallType as WallType;
+
+
+                        CompoundStructure cs = type.GetCompoundStructure();
+                        if (cs != null)
+                        {
+                            foreach (CompoundStructureLayer layer in cs.GetLayers())
+                            {
+                                double MaterialThickness = layer.Width;
+
+
+                                builder.AppendLine($"Material Thickness: {layer.Width}");
+                            }
+                        }
+                    }
+                }
+                StringBuilder builder2 = new StringBuilder();
+                foreach (FloorType floorType in floorTypes)
+                {
+
+                    builder2.AppendLine($"\r\n floorType: {floorType.Name} \r\n");
+
+                    foreach (var material in Get(floorType))
+                    {
+                        if (material == null)
+                        {
+                            throw new ArgumentNullException(nameof(material));
+                        }
+
+                        builder2.AppendLine($"Material: {material.Name}");
+                    }
+
+                }
+                TaskDialog.Show("Output-Wall", builder.ToString());
+
+            }
+            catch { }
+            finally { }
+            return MaterialThickness;
+        }
+
+        /// <summary>
+        /// Helper function: Get material
+        /// </summary>
+        /// <param name="wallType"></param>
+        /// <returns></returns>
+        public IEnumerable<Material> Get(WallType wallType)
+        {
+            if (wallType == null)
+            {
+                throw new ArgumentNullException(nameof(wallType));
+            }
+
+            var document = wallType.Document;
+
+            var layers = wallType.GetCompoundStructure().GetLayers();
+
+            foreach (var layer in layers)
+            {
+                var materialId = layer.MaterialId;
+
+                if (materialId != ElementId.InvalidElementId)
+                {
+                    yield return document.GetElement(layer.MaterialId) as Material;
+                }
+            }
+        }
+
+        public IEnumerable<Material> Get(FloorType floorType)
+        {
+            if (floorType == null)
+            {
+                throw new ArgumentNullException(nameof(floorType));
+            }
+
+            var document = floorType.Document;
+
+            var layers = floorType.GetCompoundStructure().GetLayers();
+
+            foreach (var layer in layers)
+            {
+                var materialId = layer.MaterialId;
+
+                if (materialId != ElementId.InvalidElementId)
+                {
+                    yield return document.GetElement(layer.MaterialId) as Material;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Helper function: show window types
+        /// </summary>
+        /// <param name="elems"></param>
+        /// <param name="header"></param>
+        public void ShowElementList(IList<Element> elems, string header)
+        {
+            string s = "Class ; Category ; Name (or Family: Type Name) ; Id  \r\n";
+            foreach (Element e in elems)
+            {
+                s += ElementToString(e);
+            }
+            TaskDialog.Show(elems.Count.ToString() + header, s);
+        }
+        /// <summary>
+        /// Helper function: summarize an element information as a line of text, 
+        /// which is composed of: class, category, name and id. 
+        /// name will be "Family: Type" if a given element is ElementType. 
+        /// Intended for quick viewing of list of element, for example. 
+        /// </summary> 
+        public string ElementToString(Element e)
+        {
+            if (e == null)
+            {
+                return "none";
+            }
+
+            string name = "";
+
+            if (e is ElementType)
+            {
+                Parameter param = e.get_Parameter(BuiltInParameter.SYMBOL_FAMILY_AND_TYPE_NAMES_PARAM);
+                if (param != null)
+                {
+                    name = param.AsString();
+                }
+            }
+            else
+            {
+                name = e.Name;
+            }
+            return e.GetType().Name + "; "
+              + e.Category.Name + "; "
+              + name + "; "
+              + e.Id.IntegerValue.ToString() + "\r\n";
+        }
+
+    }
+
+}
+
