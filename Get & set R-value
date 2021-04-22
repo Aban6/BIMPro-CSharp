@@ -1,0 +1,77 @@
+using Autodesk.Revit.DB;
+using Autodesk.Revit.UI;
+using System;
+using Autodesk.Revit.ApplicationServices;
+
+
+namespace MyRevitCommands
+{
+    class ElementThermalResistance
+    {
+        public void GetThermalResistance(Document doc, Application app)
+        {
+            try
+            {
+                FilteredElementCollector collectorWall
+                = new FilteredElementCollector(doc)
+               .OfClass(typeof(WallType));
+
+                foreach (Element wall in collectorWall)
+                {
+
+                    Parameter R_value = wall.get_Parameter(BuiltInParameter.ANALYTICAL_THERMAL_RESISTANCE);
+
+                    if (R_value != null)
+                    {
+                        TaskDialog.Show("Wall R-value", "Wall Ids: " + wall.Id + Environment.NewLine + 
+                        "Wall type name: " +  wall.Name + Environment.NewLine +
+                        "R_Value: " + R_value.AsDouble() + " " + R_value.AsValueString());
+                    }
+                }
+
+                FilteredElementCollector collectorRoof
+                = new FilteredElementCollector(doc)
+                .OfClass(typeof(RoofType));
+                foreach (RoofType roofType in collectorRoof)
+                {
+
+                    Parameter R_value = roofType.get_Parameter(BuiltInParameter.ANALYTICAL_THERMAL_RESISTANCE);
+                    if (R_value != null)
+                    {
+                        TaskDialog.Show("Roof R-value", "Roof type name: " + roofType.Name + Environment.NewLine + 
+                        "R_Value: " + R_value.AsDouble() + " " + R_value.AsValueString());
+                    }
+                }
+                FilteredElementCollector collectorCeiling
+                = new FilteredElementCollector(doc)
+                .OfClass(typeof(CeilingType));
+                foreach (CeilingType ceilingType in collectorCeiling)
+                {
+                    Parameter R_value = ceilingType.get_Parameter(BuiltInParameter.ANALYTICAL_THERMAL_RESISTANCE);
+                    if (R_value != null)
+                    {
+                        TaskDialog.Show("Ceiling R-value", "Ceiling type name: " + ceilingType.Name + Environment.NewLine +
+                        "R_Value: " + R_value.AsDouble() + " " + R_value.AsValueString());
+                    }
+                }
+                FilteredElementCollector collectorFloor
+                = new FilteredElementCollector(doc)
+                .OfClass(typeof(FloorType));
+                foreach (FloorType floorType in collectorFloor)
+                {
+
+                    Parameter R_value = floorType.get_Parameter(BuiltInParameter.ANALYTICAL_THERMAL_RESISTANCE);
+                    if (R_value != null)
+                    {
+                        TaskDialog.Show("Floor R-value", "Floor type name: " + floorType.Name + Environment.NewLine +
+                        "R_Value: " + R_value.AsDouble() + " " + R_value.AsValueString());
+                    }
+                }
+
+
+            }
+            catch { }
+            finally { }
+        }
+    }
+}
