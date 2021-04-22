@@ -1,0 +1,213 @@
+using Autodesk.Revit.DB;
+using WinForms = System.Windows.Forms;
+using X = Microsoft.Office.Interop.Excel;
+using System.Reflection;
+using Autodesk.Revit.UI;
+using System;
+using Autodesk.Revit.ApplicationServices;
+using System.Collections.Generic;
+
+namespace MyRevitCommands
+{
+    internal class SetSharedParametersAndSampling
+    {
+
+        public void SetElementMaterialThermalProperties(Document doc, Application app)
+        {
+            
+            // Let user select the Excel file (The Building Coder, http://thebuildingcoder.typepad.com)
+            WinForms.OpenFileDialog dlg = new WinForms.OpenFileDialog();
+            dlg.Title = "Select source Excel file from which to update Revit shared parameters";
+            dlg.Filter = "Excel spreadsheet files (*.xls;*.xlsx)|*.xls;*.xlsx|All files (*)|*";
+            if (WinForms.DialogResult.OK != dlg.ShowDialog())
+            {
+                TaskDialog.Show("error", "error in selecting the Excel file");
+            }
+
+            // Launch/Get Excel via COM Interop (The Building Coder, http://thebuildingcoder.typepad.com)
+            X.Application excel = new X.Application();
+
+            if (null == excel)
+            {
+                TaskDialog.Show("error", "Failed to get or start Excel.");
+            }
+            excel.Visible = true;
+            X.Workbook workbook = excel.Workbooks.Open(dlg.FileName,
+              Missing.Value, Missing.Value, Missing.Value,
+              Missing.Value, Missing.Value, Missing.Value, Missing.Value,
+              Missing.Value, Missing.Value, Missing.Value, Missing.Value,
+              Missing.Value, Missing.Value, Missing.Value);
+            X.Worksheet worksheet = workbook.ActiveSheet as X.Worksheet;
+
+            // count the number of rows and columns
+            long lastUsedRow = worksheet.Cells.Find("*", System.Reflection.Missing.Value,
+                               System.Reflection.Missing.Value, System.Reflection.Missing.Value,
+                               X.XlSearchOrder.xlByRows, X.XlSearchDirection.xlPrevious,
+                               false, System.Reflection.Missing.Value, System.Reflection.Missing.Value).Row;
+
+            long Lastcol = worksheet.Cells.Find("*", System.Reflection.Missing.Value,
+                            System.Reflection.Missing.Value, System.Reflection.Missing.Value,
+                            X.XlSearchOrder.xlByColumns, X.XlSearchDirection.xlPrevious,
+                            false, System.Reflection.Missing.Value, System.Reflection.Missing.Value).Column;
+
+
+            //find out if there is an empty cell in Excel
+            X.Range range = worksheet.UsedRange;
+            int i = 1;
+            int j = 1;
+            X.Range cellij = worksheet.Cells[i, j] as X.Range;
+            for (i = 1; i < lastUsedRow; i++)
+            {
+                for (j = 1; j < Lastcol; j++)
+                {
+                    if (cellij[i, j].Value == null)
+                    {
+                        TaskDialog.Show("Exit Excel", "Empty cell found!");
+                        excel.Quit();
+                    }
+                }
+            }
+
+            // Starting from row 2, loop the rows and extract parameter name and parameter value.
+            int row = 2;
+            string param_name = "";
+            double param1_std = 0;
+            double param2_std = 0;
+            double param3_std = 0;
+            double param4_std = 0;
+
+            double param1_mean = 0;
+            double param2_mean = 0;
+            double param3_mean = 0;
+            double param4_mean = 0;
+            double param1_meanDistribution = 0;
+            double param2_meanDistribution = 0;
+            double param3_meanDistribution = 0;
+            double param4_meanDistribution = 0;
+
+
+            // Assign shared parameters to all the material in the library
+            FilteredElementCollector collector = new FilteredElementCollector(doc).WhereElementIsNotElementType().OfClass(typeof(Material));
+
+            try
+            {
+                foreach (Material material in collector)
+                {
+                    Parameter param1 = material.LookupParameter("Conductivity_std");
+                    Parameter param2 = material.LookupParameter("Specific_Heat_std");
+                    Parameter param3 = material.LookupParameter("Density_std");
+                    Parameter param4 = material.LookupParameter("Thickness_std");
+
+                    //assing values from the database to each standard values, also the mean values
+                    while (row <= lastUsedRow)
+                    {
+                        X.Range first_cell = worksheet.Cells[row, 1] as X.Range;
+                        X.Range next_cell = worksheet.Cells[row, 2] as X.Range;
+                        X.Range next2_cell = worksheet.Cells[row, 3] as X.Range;
+                        X.Range next3_cell = worksheet.Cells[row, 4] as X.Range;
+                        X.Range next4_cell = worksheet.Cells[row, 5] as X.Range;
+                        X.Range next5_cell = worksheet.Cells[row, 6] as X.Range;
+                        X.Range next6_cell = worksheet.Cells[row, 7] as X.Range;
+                        X.Range next7_cell = worksheet.Cells[row, 8] as X.Range;
+                        X.Range next8_cell = worksheet.Cells[row, 9] as X.Range;
+                        X.Range next9_cell = worksheet.Cells[row, 10] as X.Range;
+                        X.Range next10_cell = worksheet.Cells[row, 12] as X.Range;
+                        X.Range next11_cell = worksheet.Cells[row, 13] as X.Range;
+
+                        param_name = first_cell.Value2;
+                        param1_std = next_cell.Value2;
+                        param2_std = next2_cell.Value2;
+                        param3_std = next3_cell.Value2;
+                        param4_std = next11_cell.Value2;
+
+                        param1_mean = next4_cell.Value2;
+                        param2_mean = next5_cell.Value2;
+                        param3_mean = next6_cell.Value2;
+                        param4_mean = next10_cell.Value2;
+
+                        param1_meanDistribution = next7_cell.Value2;
+                        param2_meanDistribution = next8_cell.Value2;
+                        param3_meanDistribution = next9_cell.Value2;
+                        param4_meanDistribution = next11_cell.Value2;
+
+                        //chack to see if the material name in the library is the same as the material name in the database
+                        if (material.Name == param_name)
+                        {
+                            ElementId thermalAssetId = material.ThermalAssetId;
+                            PropertySetElement pse = material.Document.GetElement(thermalAssetId) as PropertySetElement;
+                            ElementId materialId2 = material.Id;
+
+
+                            if (thermalAssetId != ElementId.InvalidElementId)
+                            {
+
+                                ThermalAsset asset = pse.GetThermalAsset();
+                                //change the mean values for thermal properties based on the database
+                                Parameter thCon = pse.get_Parameter(BuiltInParameter.PHY_MATERIAL_PARAM_THERMAL_CONDUCTIVITY);
+                                Parameter thSHeat = pse.get_Parameter(BuiltInParameter.PHY_MATERIAL_PARAM_STRUCTURAL_SPECIFIC_HEAT);
+                                Parameter thDen = pse.get_Parameter(BuiltInParameter.PHY_MATERIAL_PARAM_STRUCTURAL_DENSITY);
+
+                                //Parameter thThick = pse.get_Parameter(BuiltInParameter.GENERIC_WIDTH);
+                                List<Parameter> thParam = new List<Parameter>();
+
+                                using (Transaction trans = new Transaction(doc, "Set Parameter"))
+                                {
+                                    trans.Start();
+
+                                    param1.Set(param1_std);
+                                    thParam.Add(param1);
+                                    param2.Set(param2_std);
+                                    thParam.Add(param2);
+                                    param3.Set(param3_std);
+                                    thParam.Add(param3);
+
+
+                                    thCon.Set(param1_mean);
+                                    thParam.Add(thCon);
+                                    thSHeat.Set(param2_mean); //There is a bug that prevents changing the value of specific heat through Revit API. Refer to the link below (4/15/2020):
+                                    //I will change this value later in Grasshopper for the energy simulations.
+                                    thParam.Add(thSHeat);
+                                    thDen.Set(param3_mean);
+                                    thParam.Add(thDen);
+
+
+                                    trans.Commit();
+                                    TaskDialog.Show(material.Name + " Thermal Properties", "Thermal Conductivity: " + thCon.AsValueString() + Environment.NewLine +
+                                        "Specific Heat Capacity: " + thSHeat.AsValueString() + Environment.NewLine +
+                                        "Density: " + thDen.AsValueString() + Environment.NewLine);
+
+                                    row++;
+                                }
+                            }
+                            //create a thermal asset for those materials that do not already have one
+                            else
+                            {
+                                CreateThermalAsset cta = new CreateThermalAsset();
+                                cta.ThermalAsset(doc, material);
+
+                            }
+                        }
+                        else
+                        {
+                            row++;
+                        }
+
+                    }
+                    row = 2;
+                }
+
+
+            }
+            catch { }
+            finally { }
+
+            TaskDialog.Show("Exit Excel", "The parameters are successfully set!");
+            excel.Quit();
+        }
+           
+        
+        
+    }
+    
+}
+
