@@ -1,0 +1,52 @@
+using Autodesk.Revit.ApplicationServices;
+using Autodesk.Revit.DB;
+
+
+namespace MyRevitCommands
+{
+    internal class CreateSharedParameter
+    {
+        public void CreateSampleSharedParameters(Document doc, Application app)
+        {
+            Category category1 = doc.Settings.Categories.get_Item(BuiltInCategory.OST_Materials);
+            CategorySet categorySet = app.Create.NewCategorySet();
+            categorySet.Insert(category1);
+            string originalFile = app.SharedParametersFilename;
+            string tempFile = @"C:\Users\u\Google Drive\Research\Research gaps\Proposals\after prelim\Sample1\Revit API_CSharp\SharedParams.txt";
+            try
+            {
+                app.SharedParametersFilename = tempFile;
+                DefinitionFile sharedParameterFile = app.OpenSharedParameterFile();
+                foreach (DefinitionGroup dg in sharedParameterFile.Groups)
+                {
+                    if (dg.Name == "NORMAL")//MUST BE IN CAPITAL LETTERS.
+                    {
+                        ExternalDefinition externalDefinition1 = dg.Definitions.get_Item("Conductivity_std") as ExternalDefinition;
+                        ExternalDefinition externalDefinition2 = dg.Definitions.get_Item("Specific_Heat_std") as ExternalDefinition;
+                        ExternalDefinition externalDefinition3 = dg.Definitions.get_Item("Density_std") as ExternalDefinition;
+                        ExternalDefinition externalDefinition4 = dg.Definitions.get_Item("Thickness_std") as ExternalDefinition;
+                        
+                        using (Transaction t = new Transaction(doc))
+                        {
+                            t.Start("Add Shared Parameters");
+                            //parameter binding (added as a type parameter). It could be instance parameter (i.e. InstanceBinding)
+                            InstanceBinding newIB = app.Create.NewInstanceBinding(categorySet);
+                            //assign parameter group to materials
+                            doc.ParameterBindings.Insert(externalDefinition1, newIB, BuiltInParameterGroup.PG_MATERIALS);
+                            doc.ParameterBindings.Insert(externalDefinition2, newIB, BuiltInParameterGroup.PG_MATERIALS);
+                            doc.ParameterBindings.Insert(externalDefinition3, newIB, BuiltInParameterGroup.PG_MATERIALS);
+                            doc.ParameterBindings.Insert(externalDefinition4, newIB, BuiltInParameterGroup.PG_MATERIALS);
+                            t.Commit();
+                        }
+                    }
+                }
+            }
+            catch { }
+            finally
+            {
+                //reset to original file 
+                app.SharedParametersFilename = originalFile;
+            }
+        }
+    }
+}
