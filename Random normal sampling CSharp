@@ -1,0 +1,50 @@
+using Autodesk.Revit.DB;
+using WinForms = System.Windows.Forms;
+using X = Microsoft.Office.Interop.Excel;
+using System.Reflection;
+using Autodesk.Revit.UI;
+using System;
+using MathNet.Numerics.LinearAlgebra;
+using MathNet.Numerics.LinearAlgebra.Double;
+using MathNet.Numerics.Distributions;
+using Medallion;
+using System.Collections.Generic;
+
+namespace MyRevitCommands
+{
+    internal class NormalSampling
+    {
+        public void RandomNumberGenerator(double mean, double standardDeviation, string name)
+        {
+
+            // derived from https://www.alanzucconi.com/2015/09/16/how-to-sample-from-a-gaussian-distribution/
+
+            var generator = new Random();
+                        
+            double num = 0.0;
+            string list = "";
+            
+            int count = 10;
+            for (int i =0; i<count; i++)
+            
+            {
+                num = generator.NextGaussian() * standardDeviation + mean;
+                if (num > 0)
+                {
+                    list += num.ToString() + Environment.NewLine;
+                }
+                
+            }
+
+            TaskDialog.Show("Probability Distribution Function", "Parameter name: " + name + Environment.NewLine +
+                "mean: " + mean + Environment.NewLine +
+                "standard deviation: " + standardDeviation + Environment.NewLine + Environment.NewLine +
+                list);
+        }
+        
+    }
+
+
+    
+
+}
