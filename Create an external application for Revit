@@ -1,0 +1,39 @@
+using Autodesk.Revit.UI;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Reflection;
+using System.Windows.Media.Imaging;
+
+namespace MyRevitCommands
+{
+    class ExternalApplication : IExternalApplication
+    {
+        public Result OnShutdown(UIControlledApplication application)
+        {
+            return Result.Succeeded;
+        }
+
+        public Result OnStartup(UIControlledApplication application)
+        {
+            //Create Ribbon Tab
+            application.CreateRibbonTab("My Commands");
+
+            string path = Assembly.GetExecutingAssembly().Location;
+            PushButtonData button = new PushButtonData("Button1", "ProModel", path, "MyRevitCommands.ProModel");
+
+            RibbonPanel panel = application.CreateRibbonPanel("My Commands", "Commands");
+
+            //Add button image
+            Uri imagePath = new Uri(@"C:\Users\u\Google Drive\Research\Research gaps\Proposals\after prelim\Sample1\Revit API_CSharp\05_03\science-application.PNG");
+            BitmapImage image = new BitmapImage(imagePath);
+
+            PushButton pushButton = panel.AddItem(button) as PushButton;
+            pushButton.LargeImage = image;
+
+            return Result.Succeeded;
+        }
+    }
+}
