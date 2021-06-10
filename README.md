@@ -1,4 +1,4 @@
-# Create-Shared-Parameters-CSharp
+# BIMProbE
 
 This study presents a new framework to implement probabilistic methods in the field of performance-driven building design decision-making, using Building Information Modeling (BIM) and parametric tools. Fig. 1 presents the workflow including the key steps of this process, data being transferred, variables, and the software:
 
