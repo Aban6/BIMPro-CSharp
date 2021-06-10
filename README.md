@@ -18,5 +18,6 @@ Post-processing and design decision-making
 The post-processing phase consists of data analysis and graphical presentation of the simulation results. This phase is conducted using a statistical software known as JMP. The data are collected in Grasshopper and exported to Excel for post-processing. The JMP [29] add-in for Excel provides interactive graphics and tables that enable the user to identify relationships visually and examine patterns. The histogram demonstrations, normality plots and box plots are used for risk assessment and data visualization.
 The output results are represented by the values of deterministic and probabilistic outputs using two metrics of KPI and KRIs. In addition, design options are ranked according to the criteria of expected value, maximax, and maximin. The information provided in this process could help design decision-makers with building performance evaluation including uncertainties and comparing the probabilistic results with the deterministic results.
 All the scripts are available in the links below:
+
 https://github.com/Aban6/Grasshopper-sampling-Python
 https://github.com/Aban6/BIMPro-CSharp
