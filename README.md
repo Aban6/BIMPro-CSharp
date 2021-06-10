@@ -1,6 +1,8 @@
 # Create-Shared-Parameters-CSharp
 
 This study presents a new framework to implement probabilistic methods in the field of performance-driven building design decision-making, using Building Information Modeling (BIM) and parametric tools. Fig. 1 presents the workflow including the key steps of this process, data being transferred, variables, and the software:
+
+![Picture11](https://user-images.githubusercontent.com/44682432/121601208-40782a00-ca0b-11eb-9bdf-6084e003ba89.png)
  
 Fig. 1. BIMProbE workflow for probabilistic performance-based design decision-making.
 This framework considers the uncertainties in building energy simulations including material properties, internal heat gains, and infiltration and ventilation rates (more details about this framework are presented in [27]). This framework targets the Revit-based building design process and has three main steps described below: 
